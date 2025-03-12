@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import  HTTPException, Response,status,Depends,APIRouter
-import models, schemas , oauth2
-from database import  get_db
+from .. import models, schemas , oauth2 ,constants
+from ..database import  get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -46,7 +46,7 @@ async def createpost(post:schemas.PostCreate,db:Session = Depends(get_db), curre
 #     return{"latest_post":latest}
 
 @router.get("/{id}",response_model=schemas.PostOut)
-def get_post(id :int, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
+async def get_post(id :int, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
     # cursor.execute(""" SELECT * FROM posts WHERE id = %s""",(str(id),))
     # post = cursor.fetchone()
     #post = db.query(models.Post).filter(models.Post.id == id).first()
@@ -55,11 +55,11 @@ def get_post(id :int, db:Session = Depends(get_db),current_user = Depends(oauth2
     
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail=f"post with id {id} was not found")
+                            detail= constants.POST_NOT_FOUND.format(id))
     return post
 
 @router.delete("/{id}")
-def delete_post(id:int, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
+async def delete_post(id:int, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
     # cursor.execute(""" DELETE FROM posts WHERE id = %s RETURNING *""",(str(id),))
     # deleted_post = cursor.fetchone()
     # conn.commit()
@@ -69,10 +69,10 @@ def delete_post(id:int, db:Session = Depends(get_db),current_user = Depends(oaut
     post = post_query.first() 
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail=f"post with id {id} was not found")
+                            detail=constants.POST_NOT_FOUND.format(id))
 
     if post.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Not autherized to perform requested actions")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=constants.NOT_AUTHORIZED)
     
     post_query.delete(synchronize_session = False)
     db.commit()
@@ -80,7 +80,7 @@ def delete_post(id:int, db:Session = Depends(get_db),current_user = Depends(oaut
     return Response( status_code = status.HTTP_204_NO_CONTENT )
 
 @router.put("/{id}",response_model=schemas.Post)
-def update_post(id: int, updated_post: schemas.PostCreate, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
+async def update_post(id: int, updated_post: schemas.PostCreate, db:Session = Depends(get_db),current_user = Depends(oauth2.get_current_user)):
     # cursor.execute(""" UPDATE posts SET title=%s,content=%s,published=%s WHERE id = %s
     # RETURNING *""",
     # (post.title , post.content, post.published, str(id),))
@@ -94,10 +94,10 @@ def update_post(id: int, updated_post: schemas.PostCreate, db:Session = Depends(
 
     if post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
-                            detail=f"post with id {id} was not found")
+                            detail=constants.POST_NOT_FOUND.format(id))
     
     if post.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Not autherized to perform requested actions")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=constants.NOT_AUTHORIZED)
     
     post_query.update(updated_post.dict(),synchronize_session = False)
     db.commit()
