@@ -19,6 +19,21 @@ jobs:
       SQLALCHEMY_TEST_DATABASE_URL: ${{secrets.SQLALCHEMY_TEST_DATABASE_URL}}
       SQLALCHEMY_URL_ALEMBIC: ${{secrets.SQLALCHEMY_URL_ALEMBIC}}
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ${{secrets.DATABASE_USERNAME}}
+          POSTGRES_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+          POSTGRES_DB: ${{secrets.DATABASE_NAME}}_test
+        ports:
+          - 5432:5432 # on host (localhost), port 5432 becomes 5432 on the service container
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
     runs-on: ubuntu-latest
     steps:
       - name: pulling git repo
